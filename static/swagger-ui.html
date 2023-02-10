@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link type="text/css" rel="stylesheet" href="/static/swagger-ui.css">
+        <title>Custom FastAPI Doc</title>
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="/static/swagger-ui-bundle.js"></script>
+        <!-- `SwaggerUIBundle` is now available on the page -->
+        <script>
+        var openapi_obj;
+        var accecc_level;
+        var access_level_text;
+
+        const ui = SwaggerUIBundle({
+            url: '/openapi.json',
+            "dom_id": "#swagger-ui",
+            "layout": "BaseLayout",
+            "deepLinking": true,
+            "showExtensions": true,
+            "showCommonExtensions": true,
+            "persistAuthorization": true,
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset
+            ],
+            responseInterceptor: response => { 
+                // Reload after successful login to get openapi.json again         
+                if (response.url.includes("token") && response.status == 200){
+                    window.location.reload();
+                }
+                return response
+            },
+            requestInterceptor: request => {
+                // Add authorization header to GET openapi.json request 
+                if (request.url.includes("openapi.json")){
+                    if (localStorage.getItem("authorized") !== null && localStorage.getItem("authorized") !== undefined){
+                        var auth = JSON.parse(localStorage.getItem("authorized"))
+                        if (Object.keys(auth).length !== 0){
+                            request.headers.Authorization = auth.OAuth2PasswordBearer.token.token_type + " " + auth.OAuth2PasswordBearer.token.access_token;
+                        }
+                        else{
+                            request.headers.Authorization = "";
+                        }
+                    }
+                    else{
+                        request.headers.Authorization = "";
+                    }
+                }
+                return request
+            }
+        });
+        </script>
+    </body>
+</html>

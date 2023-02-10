@@ -1,2 +1,12 @@
 # user-specific-api-doc
-Create different API document for different user with FastAPI
+Show different RESTful API endpoints for different users in document.
+
+**NOTE: whether an endpoint is accessible to a user still depends on implementation of authentication**
+
+- Framework: FastAPI
+- Modification:
+    - Disable Redoc
+    - Keep swagger html and web components locally (in "static" folder)
+    - Use "openapi_extra" to record privilege of endpoints
+- Mechanism:
+![mechanism](./document/mechanism.jpg)
