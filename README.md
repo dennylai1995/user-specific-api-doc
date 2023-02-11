@@ -9,4 +9,4 @@ Show different RESTful API endpoints for different users in document.
     - Keep swagger html and web components locally (in "static" folder)
     - Use "openapi_extra" to record privilege of endpoints
 - Mechanism:
-![mechanism](./document/mechanism.jpg)
+![](media/mechanism.jpg)
