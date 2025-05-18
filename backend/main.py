@@ -4,6 +4,7 @@ from uvicorn.config import LOGGING_CONFIG
 from fastapi import FastAPI, status, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
 from fastapi.routing import APIRoute
 from fastapi.openapi.utils import get_openapi
@@ -22,7 +23,29 @@ class CustomFastAPI():
 
         self.app.mount("/static", StaticFiles(directory="static"))
         
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"]
+        )
+        
         self.app.include_router(endpoint.router)
+        
+        @self.app.get("/docs", include_in_schema=False)
+        async def custom_swagger_ui_html():
+            if self.swagger_html == None:
+                with open("./static/swagger-ui.html", "r") as f:
+                    self.swagger_html = f.read()
+                
+            return HTMLResponse(status_code=status.HTTP_200_OK, content=self.swagger_html)
+                
+        @self.app.get(self.app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+        async def swagger_ui_redirect():
+            return get_swagger_ui_oauth2_redirect_html()
+        
+        #NOTE: Redoc is disabled
         
         #Override default openapi generation function
         self.app.openapi = self.custom_openapi
@@ -41,7 +64,7 @@ class CustomFastAPI():
                     token = request.headers["authorization"].replace("bearer ", "")
                     if token != "":
                         try:
-                            self.openapi_user = auth.get_current_user(token=token)
+                            self.openapi_user = auth.get_current_user(request, token)
                         except HTTPException as e:
                             print(f'[openapi] validating user failed, login again: {e.detail}')
 
@@ -50,20 +73,6 @@ class CustomFastAPI():
                 response = await call_next(request)
             
             return response
-        
-        @self.app.get("/docs", include_in_schema=False)
-        async def custom_swagger_ui_html():
-            if self.swagger_html == None:
-                with open("./static/swagger-ui.html", "r") as f:
-                    self.swagger_html = f.read()
-                
-            return HTMLResponse(status_code=status.HTTP_200_OK, content=self.swagger_html)
-                
-        @self.app.get(self.app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
-        async def swagger_ui_redirect():
-            return get_swagger_ui_oauth2_redirect_html()
-        
-        #NOTE: Redoc is disabled
         
     def custom_openapi(self):
         route_list = []
@@ -106,5 +115,5 @@ class CustomFastAPI():
 
 if __name__ == '__main__':
     fastapi_obj = CustomFastAPI()
-    #Uvicorn accidently set the default log config to None in v0.18.0 -> fix in v0.18.2
-    uvicorn.run(fastapi_obj.app, host="0.0.0.0", port=8080, log_config=LOGGING_CONFIG, use_colors=True)
+    #Uvicorn accidentally set the default log config to None in v0.18.0 -> fixed in v0.18.2
+    uvicorn.run(fastapi_obj.app, host="0.0.0.0", port=9000, log_config=LOGGING_CONFIG, use_colors=True)

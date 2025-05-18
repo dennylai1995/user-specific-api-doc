@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A site on different port</title>
+</head>
+<body>
+    <p>This page demonstrates a site on different port than backend server.</p>
+    <form action="" id="user_form">
+        <label for="user">User:</label>
+        <select name="user" id="user">
+            <option value="general">general</option>
+            <option value="admin">admin</option>
+            <option value="root">root</option>
+        </select>
+        <input type="submit" value="Get Token">
+    </form>
+    <br>
+    <h3>Token Value</h3>
+    <p id="token_value"></p>
+    <a href="http://127.0.0.1:9000/docs" target="_blank">Go To Backend Document</a>
+
+    <script>
+        var token_value_el = document.getElementById("token_value");
+        var backend_url = `http://127.0.0.1:9000`
+
+        async function GetToken(username, password) {
+
+            const url = `${backend_url}/token`
+
+            const resp = await fetch(url, {
+                method: 'POST',
+                body: 'username=' + username + '&password=' + password,
+                headers: {
+                'accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                signal: AbortSignal.timeout(5000)
+            });
+
+            if (!resp.ok) {
+                throw new Error(`Response status: ${resp.status}`);
+            }
+
+            const json = await resp.json();
+
+            return json['token_type'] + ' ' + json['access_token'];
+        }
+
+        document.getElementById('user_form')
+        .addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            var formData = new FormData(e.target);
+            var user;
+            var token;
+
+            for (var pair of formData.entries()) {
+                if (pair[0] === 'user') {
+                    user = pair[1];
+                    continue;
+                }
+            }
+
+            console.log(`User is [${user}]`);
+
+            (async () => {
+                try {
+                    // NOTE: user username as password (just a demo)
+                    token = await GetToken(user, user);
+                    
+                    // save token to cookie (to allow cross domain access)
+                    document.cookie = `Oauth2_token=${token}; path=/;`;
+                } catch (error) {
+                    token = undefined;
+                    window.alert(
+                        `Failed to fetch token:\n${error}`);
+                }
+                token_value_el.innerHTML = token;
+            })();
+        });
+    </script>
+</body>
+</html>

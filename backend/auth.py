@@ -1,5 +1,5 @@
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import status, Depends, HTTPException
+from fastapi import status, Depends, HTTPException, Request
 
 from enum import Enum
 from pydantic import BaseModel
@@ -53,7 +53,7 @@ fake_users_db = {
 }
     
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 def verify_password(plain_password, hashed_password):
     # return pwd_context.verify(plain_password, hashed_password)
@@ -86,7 +86,20 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm= ALGORITHM)
     return encoded_jwt
     
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(request: Request, OAuth2_token: str = Depends(oauth2_scheme)):
+    
+    auth_token = None
+    
+    cookie_token = request.cookies.get("token_in_cookie")
+    
+    if cookie_token != None:
+        # prefer token in cookie
+        auth_token = cookie_token.split(" ")[1] # trim "bearer"
+        print(f'## Using token_in_cookie')
+    else:
+        auth_token = OAuth2_token
+        print(f'## Using OAuth2 token')
+    
     credentials_exception = HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail = "Could not validate credentials",
@@ -94,7 +107,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         )
     
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) 
+        payload = jwt.decode(auth_token, SECRET_KEY, algorithms=[ALGORITHM]) 
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -104,6 +117,9 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     user = get_user(fake_users_db, username=token_data.username)
     if user is None:
         raise credentials_exception
+    
+    print(f'## User: {user.username}')
+    
     return user
 
 def is_user_general(current_user: UserInDB = Depends(get_current_user)):

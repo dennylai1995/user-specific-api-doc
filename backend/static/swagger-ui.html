@@ -13,6 +13,44 @@
         var accecc_level;
         var access_level_text;
 
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        try{
+            var token_from_frontend = getCookie("Oauth2_token");
+            var access_token = token_from_frontend.split(" ")[1]
+            var token_type = token_from_frontend.split(" ")[0]
+
+            localStorage.setItem("authorized", JSON.stringify({
+                OAuth2PasswordBearer: {
+                    schema: {
+                        flow: "password",
+                        tokenUrl: "/token",
+                        scopes: {},
+                        type: "oauth2"
+                    },
+                    clientId: "",
+                    name: "OAuth2PasswordBearer",
+                    passwordType: "basic",
+                    username: "",
+                    token: {
+                        access_token: access_token,
+                        token_type: token_type
+                    },
+                    clientSecret: "",
+                    password: "",
+                    scopes: []
+                }
+            }));
+            console.log("Using Oauth2_token from cookie!");
+        }
+        catch (err) {
+            console.warn(`Failed to get Oauth2_token from cookie! (reason: ${err})`);
+        }
+
         const ui = SwaggerUIBundle({
             url: '/openapi.json',
             "dom_id": "#swagger-ui",

@@ -1,0 +1,23 @@
+@startuml
+frontend -> backend: [GET] /token
+backend -> frontend: Oauth2 token\n+\nset cookie: **token_in_cookie**
+frontend -> frontend: store token in \ncookie: **Oauth2_token**\n(sameSite=**none**)
+frontend -> backend_swaggerUI: link to backend document
+backend_swaggerUI -> backend: [GET] /docs
+backend -> backend_swaggerUI: swagger UI html
+backend_swaggerUI -> backend: [GET] /openapi.json\n(with **Authorization** header, \nvalue extracted from cookie - **Oauth2_token**)\n<color:red>NOTE: NO cookie - **token_in_cookie**
+backend -[#blue]> backend_swaggerUI: **user specific** openapi.json\n<color:red>(based on **Authorization** header)
+backend_swaggerUI -> backend_swaggerUI: render UI \nbased on openapi.json
+
+group Change User
+backend_swaggerUI -> backend: [GET] /token
+backend -> backend_swaggerUI: Oauth2 token\n+\nset cookie: **token_in_cookie**
+backend_swaggerUI -> backend_swaggerUI: reload
+backend_swaggerUI -> backend: [GET] /docs
+backend -> backend_swaggerUI: swagger UI html
+backend_swaggerUI -> backend: [GET] /openapi.json\n(with **Authorization** header, \nvalue extracted from cookie - **Oauth2_token** [not updated])\n<color:red>NOTE: WITH cookie - **token_in_cookie**
+backend -[#blue]> backend_swaggerUI: **user specific** openapi.json\n<color:red>(based on cookie - **token_in_cookie**)
+backend_swaggerUI -> backend_swaggerUI: render UI \nbased on openapi.json
+end
+
+@enduml

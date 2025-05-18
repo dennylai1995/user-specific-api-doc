@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException, Response, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 
 from datetime import timedelta
@@ -13,7 +13,7 @@ router = APIRouter()
     tags=["login"],
     include_in_schema=False
 )
-def get_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def get_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     user = auth.authenticate_user(auth.fake_users_db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -28,7 +28,12 @@ def get_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
         expires_delta=access_token_expires
     )
     
+    # NOTE: browser restricts cookies under [IP:PORT] (e.g., 127.0.0.1:9000)
+    response.set_cookie("token_in_cookie", f'bearer {access_token}')
+    
     return {"access_token": access_token, "token_type": "bearer"}
+
+# =========================================================================================
 
 @router.get("/fake-user", 
     tags=["login"],
